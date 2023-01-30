@@ -32,7 +32,7 @@ class LoDChunk:
             for z in range(self.position[1] - self.size - 1, self.position[1] + self.size + 1):
                 index_x = x - self.position[0] + 1
                 index_z = z - self.position[1] + 1
-                self.heightmap[index_x, index_z] = opensimplex.noise2(x / 16, z / 16) * 4
+                self.heightmap[index_x, index_z] = opensimplex.noise2((x + self.position[0]) / 16, (z + self.position[1]) / 16) * 4
         
         for x in range(self.position[0] - self.size, self.position[0] + self.size):
             for z in range(self.position[1] - self.size, self.position[1] + self.size):
