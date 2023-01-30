@@ -20,19 +20,19 @@ class LoDChunk:
         self.position = position
         self.size = size
         self.mesh = np.array([])
-        self.heightmap = np.zeros((size + 2, size + 2))
+        self.heightmap = np.zeros((size * 2 + 2, size * 2 + 2))
         self.batch = pyglet.graphics.Batch()
         
     def generate(self):
         # Generate the heightmap
-        for x in range(self.position[0] - 1, self.position[0] + self.size + 1):
-            for z in range(self.position[1] - 1, self.position[1] + self.size + 1):
+        for x in range(self.position[0] - self.size - 1, self.position[0] + self.size + 1):
+            for z in range(self.position[1] - self.size - 1, self.position[1] + self.size + 1):
                 index_x = x - self.position[0] + 1
                 index_z = z - self.position[1] + 1
                 self.heightmap[index_x, index_z] = opensimplex.noise2(x / 16, z / 16) * 4
         
-        for x in range(self.position[0], self.position[0] + self.size):
-            for z in range(self.position[1], self.position[1] + self.size):
+        for x in range(self.position[0] - self.size, self.position[0] + self.size):
+            for z in range(self.position[1] - self.size, self.position[1] + self.size):
                 self.mesh = np.append(self.mesh, [
                     x, self.heightmap[x - self.position[0], z - self.position[1]], z,
                     x + 1, self.heightmap[x - self.position[0] + 1, z - self.position[1]], z,
@@ -50,7 +50,7 @@ class LoDChunk:
         self.batch.draw()
         
 class LoDWorld:
-    def __init__(self, player, chunk_size=16, render_distance=4):
+    def __init__(self, player, chunk_size=32, render_distance=6):
         self.player = player
         self.chunk_size = chunk_size
         self.render_distance = render_distance
