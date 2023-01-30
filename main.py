@@ -12,7 +12,7 @@ window = pyglet.window.Window(
 
 # Initialize some variables
 camera_position = [0, 0, 0]
-camera = FirstPersonCamera(window)
+camera = FirstPersonCamera(window, movement_speed=16)
 window.set_exclusive_mouse(True)
 window.set_size(800, 600)
 
@@ -73,7 +73,6 @@ class LoDChunk:
                                None, range(len(self.mesh) // 3), ('v3f', self.mesh))
 
         # Enable the chunk
-        self.enabled = True
         self.generated = True
 
     def draw(self):
@@ -107,7 +106,9 @@ class LoDWorld:
 
     def update(self, delta_time):
         # Based on the player's position, update the chunks
-        position = self.player.position
+        position = [self.player.position[0] // 2,
+                    self.player.position[1] // 2,
+                    self.player.position[2] // 2]
         pchunk = [int(position[0] // self.chunk_size),
                   int(position[2] // self.chunk_size)]
         for chunk in self.chunks:
