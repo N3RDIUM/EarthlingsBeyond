@@ -6,12 +6,13 @@ from pyglet.gl import *
 from player import FirstPersonCamera
 
 # Create a window
-window = pyglet.window.Window()
+window = pyglet.window.Window(800, 600, caption="Earthlings Beyond", resizable=True)
 
 # Initialize some variables
 camera_position = [0, 0, 0]
 camera = FirstPersonCamera(window)
 window.set_exclusive_mouse(True)
+window.set_size(800, 600)
 
 # Class for LoD terrain chunk
 class LoDChunk:
@@ -91,6 +92,11 @@ if __name__ == "__main__":
         world.draw()
         return pyglet.event.EVENT_HANDLED
     
+    @window.event
+    def on_key_press(symbol, modifiers):
+        if symbol == pyglet.window.key.ESCAPE:
+            return pyglet.event.EVENT_HANDLED
+                
     def on_update(delta_time):
         camera.update(delta_time)
 
