@@ -149,3 +149,11 @@ class FirstPersonCamera(object):
         pyglet.gl.glRotatef(self.__pitch, 1.0, 0.0, 0.0)
         pyglet.gl.glRotatef(self.__yaw, 0.0, 1.0, 0.0)
         pyglet.gl.glTranslatef(*self.__position)
+    
+    @property
+    def position(self):
+        return -self.__position[0], self.__position[1], -self.__position[2]
+    
+    @property
+    def rotation(self):
+        return self.__yaw, self.__pitch
