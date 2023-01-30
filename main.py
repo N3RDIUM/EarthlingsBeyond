@@ -47,10 +47,13 @@ class LoDChunk:
         self.batch.add_indexed(len(self.mesh) // 3, GL_LINES, None, range(len(self.mesh) // 3), ('v3f', self.mesh))
         
     def draw(self):
+        glPushMatrix()
+        glTranslatef(self.position[0], 0, self.position[1])
         self.batch.draw()
+        glPopMatrix()
         
 class LoDWorld:
-    def __init__(self, player, chunk_size=32, render_distance=6):
+    def __init__(self, player, chunk_size=256, render_distance=1):
         self.player = player
         self.chunk_size = chunk_size
         self.render_distance = render_distance
