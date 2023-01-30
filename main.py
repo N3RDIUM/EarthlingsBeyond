@@ -43,7 +43,9 @@ class LoDChunk:
                     opensimplex.noise2((x + self.position[0]) / 16, (z + self.position[1]) / 16) * 8 +
                     opensimplex.noise2((x + self.position[0]) / 8, (z + self.position[1]) / 8) * 4 +
                     opensimplex.noise2((x + self.position[0]) / 4, (z + self.position[1]) / 4) * 2 +
-                    opensimplex.noise2((x + self.position[0]) / 2, (z + self.position[1]) / 2)
+                    opensimplex.noise2((x + self.position[0]) / 2, (z + self.position[1]) / 2) + 
+                    opensimplex.noise2((x + self.position[0]), (z + self.position[1])) +
+                    opensimplex.noise2((x + self.position[0]) * 2, (z + self.position[1]) * 2)
                 )
 
         for x in range(self.position[0] - self.size, self.position[0] + self.size):
