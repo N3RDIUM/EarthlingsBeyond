@@ -1,4 +1,4 @@
-import math
+import random
 import pyglet
 import opensimplex
 import numpy as np
@@ -23,14 +23,13 @@ class LoDChunk:
         self.mesh = np.array([])
         self.heightmap = np.zeros((size * 2 + 2, size * 2 + 2))
         self.batch = pyglet.graphics.Batch()
+        self.color = (random.random(), random.random(), random.random())
         
     def generate(self):
         # Generate the heightmap
-        for x in range(self.position[0] - self.size - 1, self.position[0] + self.size + 1):
-            for z in range(self.position[1] - self.size - 1, self.position[1] + self.size + 1):
-                index_x = x - self.position[0] + 1
-                index_z = z - self.position[1] + 1
-                self.heightmap[index_x, index_z] = opensimplex.noise2(x / 16, z / 16) * 4
+        for x in range(self.size*2+2):
+            for z in range(self.size*2+2):
+                self.heightmap[x, z] = opensimplex.noise2(self.position[0] + x, self.position[1] + z) * 4
         
         for x in range(self.position[0] - self.size, self.position[0] + self.size):
             for z in range(self.position[1] - self.size, self.position[1] + self.size):
@@ -50,6 +49,7 @@ class LoDChunk:
     def draw(self):
         glPushMatrix()
         glTranslatef(self.position[0], 0, self.position[1])
+        glColor3f(*self.color)
         self.batch.draw()
         glPopMatrix()
         
@@ -91,12 +91,7 @@ if __name__ == "__main__":
         camera.draw()
         world.draw()
         return pyglet.event.EVENT_HANDLED
-    
-    @window.event
-    def on_key_press(symbol, modifiers):
-        if symbol == pyglet.window.key.ESCAPE:
-            return pyglet.event.EVENT_HANDLED
-                
+
     def on_update(delta_time):
         camera.update(delta_time)
 
