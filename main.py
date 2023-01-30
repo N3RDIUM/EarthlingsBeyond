@@ -1,6 +1,7 @@
 import random
 import pyglet
 import opensimplex
+import math
 import numpy as np
 from pyglet.gl import *
 from player import FirstPersonCamera
@@ -27,9 +28,11 @@ class LoDChunk:
         
     def generate(self):
         # Generate the heightmap
-        for x in range(self.size*2+2):
-            for z in range(self.size*2+2):
-                self.heightmap[x, z] = opensimplex.noise2(self.position[0] + x, self.position[1] + z) * 4
+        for x in range(self.position[0] - self.size - 1, self.position[0] + self.size + 1):
+            for z in range(self.position[1] - self.size - 1, self.position[1] + self.size + 1):
+                index_x = x - self.position[0] + 1
+                index_z = z - self.position[1] + 1
+                self.heightmap[index_x, index_z] = opensimplex.noise2(x / 16, z / 16) * 4
         
         for x in range(self.position[0] - self.size, self.position[0] + self.size):
             for z in range(self.position[1] - self.size, self.position[1] + self.size):
