@@ -20,7 +20,7 @@ window.set_size(800, 600)
 
 
 class LoDChunk:
-    def __init__(self, player, position, size=16):
+    def __init__(self, player, position, size=16, LoD=1):
         self.player = player
         self.position = position
         self.size = size
@@ -30,11 +30,12 @@ class LoDChunk:
         self.color = (random.random(), random.random(), random.random())
         self.enabled = False
         self.generated = False
+        self.LoD = LoD
 
     def generate(self):
         # Generate the heightmap
-        for x in range(self.position[0] - self.size - 1, self.position[0] + self.size + 1):
-            for z in range(self.position[1] - self.size - 1, self.position[1] + self.size + 1):
+        for x in range(self.position[0] - self.size - 1, self.position[0] + self.size + 1, self.LoD):
+            for z in range(self.position[1] - self.size - 1, self.position[1] + self.size + 1, self.LoD):
                 index_x = x - self.position[0] + 1
                 index_z = z - self.position[1] + 1
                 self.heightmap[index_x, index_z] = (
@@ -43,29 +44,30 @@ class LoDChunk:
                     opensimplex.noise2((x + self.position[0]) / 16, (z + self.position[1]) / 16) * 8 +
                     opensimplex.noise2((x + self.position[0]) / 8, (z + self.position[1]) / 8) * 4 +
                     opensimplex.noise2((x + self.position[0]) / 4, (z + self.position[1]) / 4) * 2 +
-                    opensimplex.noise2((x + self.position[0]) / 2, (z + self.position[1]) / 2) + 
+                    opensimplex.noise2((x + self.position[0]) / 2, (z + self.position[1]) / 2) +
                     opensimplex.noise2((x + self.position[0]), (z + self.position[1])) +
-                    opensimplex.noise2((x + self.position[0]) * 2, (z + self.position[1]) * 2)
+                    opensimplex.noise2(
+                        (x + self.position[0]) * 2, (z + self.position[1]) * 2)
                 )
 
-        for x in range(self.position[0] - self.size, self.position[0] + self.size):
-            for z in range(self.position[1] - self.size, self.position[1] + self.size):
+        for x in range(self.position[0] - self.size, self.position[0] + self.size, self.LoD):
+            for z in range(self.position[1] - self.size, self.position[1] + self.size, self.LoD):
                 self.mesh = np.append(self.mesh, [
-                    x, self.heightmap[x - self.position[0],
-                                      z - self.position[1]], z,
+                    x, self.heightmap[(x - self.position[0]) * self.LoD,
+                                      (z - self.position[1]) * self.LoD], z,
                     x +
-                    1, self.heightmap[x - self.position[0] +
-                                      1, z - self.position[1]], z,
-                    x, self.heightmap[x - self.position[0],
-                                      z - self.position[1] + 1], z + 1,
+                    1, self.heightmap[(x - self.position[0] +
+                                      1) * self.LoD, (z - self.position[1]) * self.LoD], z,
+                    x, self.heightmap[(x - self.position[0]) * self.LoD,
+                                      (z - self.position[1] + 1) * self.LoD], z + 1,
 
                     x +
-                    1, self.heightmap[x - self.position[0] +
-                                      1, z - self.position[1]], z,
-                    x + 1, self.heightmap[x - self.position[0] +
-                                          1, z - self.position[1] + 1], z + 1,
-                    x, self.heightmap[x - self.position[0],
-                                      z - self.position[1] + 1], z + 1
+                    1, self.heightmap[(x - self.position[0] +
+                                      1) * self.LoD, (z - self.position[1]) * self.LoD], z,
+                    x + 1, self.heightmap[(x - self.position[0] +
+                                          1) * self.LoD, (z - self.position[1] + 1) * self.LoD], z + 1,
+                    x, self.heightmap[(x - self.position[0]) * self.LoD,
+                                      (z - self.position[1] + 1) * self.LoD], z + 1
                 ])
 
         # Update the batch
