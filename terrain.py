@@ -11,7 +11,7 @@ import time
 
 
 class LoDChunk:
-    def __init__(self, player, position, size=16, resolution=32):
+    def __init__(self, player, position, size=16, resolution=8):
         self.player = player
         self.position = position
         self.size = size
@@ -148,7 +148,8 @@ class LoDWorld:
                 
     def update_thread(self):
         while not self.closed:
-            for chunk in self.to_generate:
+            if len(self.to_generate) > 0:
+                chunk = self.to_generate[random.randint(0, len(self.to_generate)-1)]
                 chunk.generate()
                 self.to_generate.remove(chunk)
-            time.sleep(0.1)
+            time.sleep(1 / 30)
