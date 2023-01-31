@@ -1,159 +1,139 @@
+from pyglet.gl import *
+from pyglet.window import key
 import math
-import collections
 
-import pyglet
-
-
-class FirstPersonCamera(object):
-    """First person camera implementation
-    Usage:
-        import pyglet
-        from pyglet.gl import *
-        from camera import FirstPersonCamera
-        window = pyglet.window.Window(fullscreen=True)
-        window.set_exclusive_mouse(True)
-        camera = FirstPersonCamera(window)
-        @window.event
-        def on_draw():
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-            glLoadIdentity()
-            camera.draw()
-            # Your draw code here
-            return pyglet.event.EVENT_HANDLED
-        def on_update(delta_time):
-            camera.update(delta_time)
-            # Your update code here
-        if __name__ == '__main__':
-            pyglet.clock.schedule(on_update)
-            pyglet.app.run()
+class Player:
+    """
+    Player
     """
 
-    DEFAULT_MOVEMENT_SPEED = 10.0
-
-    DEFAULT_MOUSE_SENSITIVITY = 0.25
-
-    DEFAULT_KEY_MAP = {
-        'forward': pyglet.window.key.W,
-        'backward': pyglet.window.key.S,
-        'left': pyglet.window.key.A,
-        'right': pyglet.window.key.D,
-        'up': pyglet.window.key.SPACE,
-        'down': pyglet.window.key.LSHIFT
-    }
-
-    class InputHandler(object):
-        def __init__(self):
-            self.pressed = collections.defaultdict(bool)
-            self.dx = 0
-            self.dy = 0
-
-        def on_key_press(self, symbol, modifiers):
-            self.pressed[symbol] = True
-
-        def on_key_release(self, symbol, modifiers):
-            self.pressed[symbol] = False
-
-        def on_mouse_motion(self, x, y, dx, dy):
-            self.dx = dx
-            self.dy = dy
-
-    def __init__(self, window, position=(0, 0, 0), key_map=DEFAULT_KEY_MAP, movement_speed=DEFAULT_MOVEMENT_SPEED, mouse_sensitivity=DEFAULT_MOUSE_SENSITIVITY, y_inv=True):
-        """Create camera object
-        Arguments:
-            window -- pyglet window which camera attach
-            position -- position of camera
-            key_map -- dict like FirstPersonCamera.DEFAULT_KEY_MAP
-            movement_speed -- speed of camera move (scalar)
-            mouse_sensitivity -- sensitivity of mouse (scalar)
-            y_inv -- inversion turn above y-axis
+    def __init__(self, window=None, world=None):
         """
+        Initialize the player.
+        :param window: The window object.
+        :param world: The world object.
+        """
+        # Set properties
+        self.window = window
+        self.world = world
 
-        self.__position = list(position)
+        # Lock mouse pointer
+        self.lock = True
+        window.set_exclusive_mouse(True)
+        
+        # Bind keys
+        self.keys = key.KeyStateHandler()
+        window.push_handlers(self.keys)
+        self.pressed = []
 
-        self.__yaw = 0.0
-        self.__pitch = 0.0
-
-        self.__input_handler = FirstPersonCamera.InputHandler()
-
-        window.push_handlers(self.__input_handler)
-
-        self.y_inv = y_inv
-        self.key_map = key_map
-        self.movement_speed = movement_speed
-        self.mouse_sensitivity = mouse_sensitivity
-
-    def yaw(self, yaw):
-        """Turn above x-axis"""
-        self.__yaw += yaw * self.mouse_sensitivity
-
-    def pitch(self, pitch):
-        """Turn above y-axis"""
-        self.__pitch += pitch * self.mouse_sensitivity * ((-1) if self.y_inv else 1)
-
-    def move_forward(self, distance):
-        """Move forward on distance"""
-        self.__position[0] -= distance * math.sin(math.radians(self.__yaw))
-        self.__position[2] += distance * math.cos(math.radians(self.__yaw))
-
-    def move_backward(self, distance):
-        """Move backward on distance"""
-        self.__position[0] += distance * math.sin(math.radians(self.__yaw))
-        self.__position[2] -= distance * math.cos(math.radians(self.__yaw))
-
-    def move_left(self, distance):
-        """Move left on distance"""
-        self.__position[0] -= distance * math.sin(math.radians(self.__yaw - 90))
-        self.__position[2] += distance * math.cos(math.radians(self.__yaw - 90))
-
-    def move_right(self, distance):
-        """Move right on distance"""
-        self.__position[0] -= distance * math.sin(math.radians(self.__yaw + 90))
-        self.__position[2] += distance * math.cos(math.radians(self.__yaw + 90))
-
-    def move_up(self, distance):
-        """Move up on distance"""
-        self.__position[1] -= distance
-
-    def move_down(self, distance):
-        """Move down on distance"""
-        self.__position[1] += distance
+        # Default state
+        self.state = {
+            "position": [0, 0, 0],
+            "rotation": [0, 0, 0],
+            "velocity": [0, 0, 0],
+            "friction": 0.9,
+            "gravity": 9.81,
+            "speed": 0.1,
+            "zoom": False,
+            "fly": False,
+        }
+        
+    def on_mouse_motion(self, x, y, dx, dy):
+        """
+        Update the player on mouse motion.
+        :param x: The x position.
+        :param y: The y position.
+        :param dx: The x delta.
+        :param dy: The y delta.
+        """
+        # mouse rotation: get dx and dy
+        if self.lock:
+            self.state["rotation"][0] += dy/8  # pitch
+            self.state["rotation"][1] -= dx/8  # yaw
+            if self.state["rotation"][0] > 90:  # clamp pitch
+                self.state["rotation"][0] = 90
+            elif self.state["rotation"][0] < -90:  # clamp pitch
+                self.state["rotation"][0] = -90
+                
+    def on_key_press(self, symbol, modifiers):
+        """
+        Update the player on key press.
+        :param symbol: The symbol.
+        :param modifiers: The modifiers.
+        """
+        # ESC to release mouse
+        if symbol == pyglet.window.key.ESCAPE:
+            self.window.set_exclusive_mouse(False)
+            self.lock = False
+        # L to lock mouse
+        if symbol == pyglet.window.key.L:
+            self.window.set_exclusive_mouse(True)
+            self.lock = True
+            
+        self.pressed.append(symbol)
+        
+    def on_key_release(self, symbol, modifiers):
+        """
+        Update the player on key release.
+        :param symbol: The symbol.
+        :param modifiers: The modifiers.
+        """
+        if symbol in self.pressed:
+            self.pressed.remove(symbol)
 
     def update(self, delta_time):
-        """Update camera state"""
-        self.yaw(self.__input_handler.dx)
-        self.__input_handler.dx = 0
+        """
+        Update the player on drawcall.
+        """
+        # Get the state
+        sens = self.state["speed"]
+        rotY = math.radians(-self.state["rotation"][1])
+        dx, dz = math.sin(rotY), math.cos(rotY)
+        
+        delta_ratio = delta_time * 60
+        sens *= delta_ratio
+        
+        # Key handlers
+        if key.W in self.pressed:
+            self.state["velocity"][0] += dx*sens
+            self.state["velocity"][2] -= dz*sens
+        if key.S in self.pressed:
+            self.state["velocity"][0] -= dx*sens
+            self.state["velocity"][2] += dz*sens
+        if key.A in self.pressed:
+            self.state["velocity"][0] -= dz*sens
+            self.state["velocity"][2] -= dx*sens
+        if key.D in self.pressed:
+            self.state["velocity"][0] += dz*sens
+            self.state["velocity"][2] += dx*sens
+        if key.MOD_CTRL in self.pressed or key.LCTRL in self.pressed:
+            self.state["speed"] = 0.05
+        else:
+            self.state["speed"] = 0.03
+            
+        # SHIFT to fly down
+        if key.MOD_SHIFT in self.pressed or key.LSHIFT in self.pressed:
+            self.state["velocity"][1] -= 0.05
+        # SPACE to fly up
+        if key.SPACE in self.pressed:
+            self.state["velocity"][1] += 0.05
 
-        self.pitch(self.__input_handler.dy)
-        self.__input_handler.dy = 0
+        # Apply velocity
+        self.state["position"][0] += self.state["velocity"][0]
+        self.state["position"][1] += self.state["velocity"][1]
+        self.state["position"][2] += self.state["velocity"][2]
 
-        if self.__input_handler.pressed[self.key_map['forward']]:
-            self.move_forward(delta_time * self.movement_speed)
-
-        if self.__input_handler.pressed[self.key_map['backward']]:
-            self.move_backward(delta_time * self.movement_speed)
-
-        if self.__input_handler.pressed[self.key_map['left']]:
-            self.move_left(delta_time * self.movement_speed)
-
-        if self.__input_handler.pressed[self.key_map['right']]:
-            self.move_right(delta_time * self.movement_speed)
-
-        if self.__input_handler.pressed[self.key_map['up']]:
-            self.move_up(delta_time * self.movement_speed)
-
-        if self.__input_handler.pressed[self.key_map['down']]:
-            self.move_down(delta_time * self.movement_speed)
+        # Apply friction
+        self.state["velocity"][0] *= self.state["friction"]
+        self.state["velocity"][1] *= self.state["friction"]
+        self.state["velocity"][2] *= self.state["friction"]
 
     def draw(self):
-        """Apply transform"""
-        pyglet.gl.glRotatef(self.__pitch, 1.0, 0.0, 0.0)
-        pyglet.gl.glRotatef(self.__yaw, 0.0, 1.0, 0.0)
-        pyglet.gl.glTranslatef(*self.__position)
-    
-    @property
-    def position(self):
-        return -self.__position[0], self.__position[1], -self.__position[2]
-    
-    @property
-    def rotation(self):
-        return self.__yaw, self.__pitch
+        """
+        Draw the player.
+        """
+        # Draw the player
+        glRotatef(-self.state["rotation"][0], 1, 0, 0)
+        glRotatef(-self.state["rotation"][1], 0, 1, 0)
+        glTranslatef(-self.state["position"][0], -
+                     self.state["position"][1], -self.state["position"][2])
