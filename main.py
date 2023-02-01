@@ -13,7 +13,7 @@ camera = Player(window)
 window.set_size(800, 600)
 
 
-world = LoDWorld(camera, 256, 4, window=window)
+world = LoDWorld(camera, 4, 4, window=window)
 
 
 def _setup_3d():

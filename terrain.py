@@ -11,7 +11,7 @@ import time
 
 
 class LoDChunk:
-    def __init__(self, player, position, size=16, resolution=128):
+    def __init__(self, player, position, size=16, resolution=32):
         self.player = player
         self.position = position
         self.size = size
