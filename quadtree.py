@@ -1,6 +1,7 @@
 # Implementation of a QuadTree in Python
 # This is for Terrain LoD
-import noise
+import opensimplex
+import numpy as np
 from mesh import Mesh
 
 # Create LeafNode first
@@ -13,22 +14,20 @@ class LeafNode(object):
         self.generate()
     
     def generate(self,):
-        vertices = []
-        indices = []
+        self.heightmap = {}
+        self.mesh = np.array([])
         
+        # Generate the heightmap
         for x in range(self.resolution):
-            for y in range(self.resolution):
-                # Basically, create a grid of points
-                vertices.append((x/self.resolution*self.size[0] + self.position[0], y/self.resolution*self.size[1] + self.position[1], noise.pnoise2(x/self.resolution*self.size[0] + self.position[0], y/self.resolution*self.size[1] + self.position[1], 2, 0.5, 2, 1, 1, 1)))
+            for z in range(self.resolution):
+                self.heightmap[(x, z)] = opensimplex.noise2(
+                    (x + self.position[0]) / 16.0, (z + self.position[1]) / 16.0)
+        for x in range(self.resolution):
+            for z in range(self.resolution):
+                self.mesh = np.append(self.mesh, [x * self.size / self.resolution, self.heightmap[(x, z)], z * self.size / self.resolution])
                 
-        # Now, create the indices
-        for x in range(self.resolution - 1):
-            for y in range(self.resolution - 1):
-                indices.append((x*self.resolution + y, (x+1)*self.resolution + y, x*self.resolution + y + 1))
-                indices.append(((x+1)*self.resolution + y, (x+1)*self.resolution + y + 1, x*self.resolution + y + 1))
-        
-        self.mesh = Mesh(vertices, indices)
-        print("Generated mesh with %d vertices and %d indices" % (len(vertices), len(indices)))
+        self.mesh = Mesh(self.mesh)
+        print("Generated mesh with %d vertices" % (len(self.mesh.vertices) / 3))
         
     def draw(self):
         if self.mesh:
@@ -40,7 +39,7 @@ class QuadTree(object):
         self.level = level
         self.size = size
         self.children = []
-        self.terrain = LeafNode([0, 0], [1, 1], 16)
+        self.terrain = LeafNode([0, 0], 16, 16)
         self.split = False
         
     def draw(self):

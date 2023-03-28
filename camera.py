@@ -21,21 +21,21 @@ class Camera(object):
             
         # strafe left
         if glfw.get_key(window, glfw.KEY_A) == glfw.PRESS:
-            self.position[0] += sin(radians(self.rotation[1] - 90)) * 0.1
-            self.position[2] -= cos(radians(self.rotation[1] - 90)) * 0.1
+            self.position[0] -= sin(radians(self.rotation[1] - 90)) * 0.1
+            self.position[2] += cos(radians(self.rotation[1] - 90)) * 0.1
             
         # strafe right
         if glfw.get_key(window, glfw.KEY_D) == glfw.PRESS:
-            self.position[0] += sin(radians(self.rotation[1] + 90)) * 0.1
-            self.position[2] -= cos(radians(self.rotation[1] + 90)) * 0.1
+            self.position[0] -= sin(radians(self.rotation[1] + 90)) * 0.1
+            self.position[2] += cos(radians(self.rotation[1] + 90)) * 0.1
             
         # go up
         if glfw.get_key(window, glfw.KEY_SPACE) == glfw.PRESS:
-            self.position[1] += 0.1
+            self.position[1] -= 0.1
             
         # go down
         if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-            self.position[1] -= 0.1
+            self.position[1] += 0.1
         
         # mouse look
         current_position = glfw.get_cursor_pos(window)
