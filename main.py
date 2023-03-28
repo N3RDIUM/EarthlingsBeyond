@@ -1,20 +1,60 @@
-# Imports
 import glfw
-from OpenGL import GL as gl
-from OpenGL import GLU as glu
+from OpenGL.GL import *
+from OpenGL.GLU import *
 
-# Create a new  window using GLFW
-glfw.init()
-window = glfw.create_window(640, 480, "[Currently in pre-beta stage]", None, None)
-glfw.make_context_current(window)
+from quadtree import QuadTree
+from camera import Camera
 
-# Run mainloop
-while not glfw.window_should_close(window):
-    glfw.poll_events()
-    gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+def main():
+    # Initialize GLFW
+    if not glfw.init():
+        return
     
-    gl.glClearColor(0, 0, 0, 1)
+    # Create a windowed mode window and its OpenGL context
+    window = glfw.create_window(640, 480, "Earthlings Beyond", None, None)
+    if not window:
+        glfw.terminate()
+        return
     
-    # Sync events
-    glfw.swap_buffers(window)
-    glfw.poll_events()
+    # Make the window's context current
+    glfw.make_context_current(window)
+    
+    # Create a quadtree and camera
+    terrain = QuadTree([0, 0], [1, 1], 0)
+    camera = Camera()
+    
+    def _setup_3d():
+        glEnable(GL_DEPTH_TEST)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluPerspective(60, 640 / 480, 0.1, 1000)
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+        
+    # Loop until the user closes the window
+    while not glfw.window_should_close(window):
+        # Setup 3D rendering
+        _setup_3d()
+        
+        # Clear the screen to black
+        glClear(GL_COLOR_BUFFER_BIT)
+        # Now we can set the color
+        glColor3f(1, 1, 1)
+        
+        # Update the camera
+        camera.update(window)
+        
+        # Draw the quadtree
+        terrain.draw()
+        
+        # Swap front and back buffers
+        glfw.swap_buffers(window)
+        
+        # Poll for and process events
+        glfw.poll_events()
+        
+    # Terminate GLFW
+    glfw.terminate()
+
+if __name__ == '__main__':
+    main()
