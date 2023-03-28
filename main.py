@@ -23,6 +23,9 @@ def main():
     terrain = QuadTree([0, 0], [1, 1], 0)
     camera = Camera()
     
+    # Lock the mouse to the window
+    glfw.set_input_mode(window, glfw.CURSOR, glfw.CURSOR_DISABLED)
+    
     def _setup_3d():
         glEnable(GL_DEPTH_TEST)
         glMatrixMode(GL_PROJECTION)
