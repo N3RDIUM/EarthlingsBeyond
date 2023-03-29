@@ -3,6 +3,8 @@
 import opensimplex
 import numpy as np
 from mesh import Mesh
+from OpenGL.GL import glColor3f
+import random
 
 # Create LeafNode first
 class LeafNode(object):
@@ -12,6 +14,7 @@ class LeafNode(object):
         self.resolution = resolution
         self.mesh = None
         self.generate()
+        self.color = [random.random(), random.random(), random.random()]
     
     def generate(self,):
         self.heightmap = {}
@@ -51,6 +54,7 @@ class LeafNode(object):
         
     def draw(self):
         if self.mesh:
+            glColor3f(self.color[0], self.color[1], self.color[2])
             self.mesh.draw()
 
 class QuadTree(object):
@@ -59,25 +63,26 @@ class QuadTree(object):
         self.level = level
         self.size = size
         self.children = []
-        self.terrain = LeafNode([0, 0], [16, 16], 32)
-        self.split = False
+        self.terrain = LeafNode(position, size, 32)
+        self._split = False
         
     def draw(self):
-        if not self.split:
+        if not self._split:
             self.terrain.draw()
             return
         for child in self.children:
+            glColor3f(0.0, 0.0, 0.0)
             child.draw()
             
     def split(self):
-        XY = LeafNode((self.position[0], self.position[1]), (self.size[0]/2, self.size[1]/2), self.level + 1)
-        Xy = LeafNode((self.position[0], self.position[1] + self.size[1]/2), (self.size[0]/2, self.size[1]/2), self.level + 1)
-        xY = LeafNode((self.position[0] + self.size[0]/2, self.position[1]), (self.size[0]/2, self.size[1]/2), self.level + 1)
-        xy = LeafNode((self.position[0] + self.size[0]/2, self.position[1] + self.size[1]/2), (self.size[0]/2, self.size[1]/2), self.level + 1)
+        XY = QuadTree([self.position[0], self.position[1]], [self.size[0] / 2, self.size[1] / 2], self.level - 1)
+        Xy = QuadTree([self.position[0], self.position[1] + self.size[1] / 2], [self.size[0] / 2, self.size[1] / 2], self.level - 1)
+        xY = QuadTree([self.position[0] + self.size[0] / 2, self.position[1]], [self.size[0] / 2, self.size[1] / 2], self.level - 1)
+        xy = QuadTree([self.position[0] + self.size[0] / 2, self.position[1] + self.size[1] / 2], [self.size[0] / 2, self.size[1] / 2], self.level - 1)
         self.children.extend([XY, Xy, xY, xy])
-        self.split = True
+        self._split = True
 
     def unite(self):
         del self.children[:]
         self.children = []
-        self.split = False
+        self._split = False

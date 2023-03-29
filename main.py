@@ -21,6 +21,9 @@ def main():
     
     # Create a quadtree and camera
     terrain = QuadTree([0, 0], [1, 1], 0)
+    terrain.split()
+    for chunk in terrain.children:
+        chunk.split()
     camera = Camera()
     
     # Lock the mouse to the window
@@ -34,6 +37,9 @@ def main():
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         
+    count = 0
+    frame = 0
+        
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
         # Render here, e.g. using pyOpenGL
@@ -41,12 +47,18 @@ def main():
         _setup_3d()
         camera.update(window)
         terrain.draw()
+
+        # if frame%60 == 0:
+        #     count += 1
+        #     terrain.split()
         
         # Swap front and back buffers
         glfw.swap_buffers(window)
         
         # Poll for and process events
         glfw.poll_events()
+        
+        frame += 1
         
     # Terminate GLFW
     glfw.terminate()
