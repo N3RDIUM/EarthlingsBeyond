@@ -3,8 +3,7 @@ from OpenGL.GL import *
 from OpenGL.arrays import vbo
 import numpy as np
 
-# Set point size
-glPointSize(5)
+glLineWidth(8)
 
 class Mesh:
     def __init__(self, vertices, indices=[], normals=[], uvs=[]):
@@ -17,19 +16,8 @@ class Mesh:
 
     def draw(self):
         self.vbo.bind()
-
         glEnableClientState(GL_VERTEX_ARRAY)
-        glEnableClientState(GL_NORMAL_ARRAY)
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY)
-
         glVertexPointer(3, GL_FLOAT, 32, self.vbo)
-        glNormalPointer(GL_FLOAT, 32, self.vbo+12)
-        glTexCoordPointer(2, GL_FLOAT, 32, self.vbo+24)
-
-        glDrawArrays(GL_POINTS, 0, len(self.vertices))
-
+        glDrawArrays(GL_LINE_LOOP, 0, len(self.vertices))
         glDisableClientState(GL_VERTEX_ARRAY)
-        glDisableClientState(GL_NORMAL_ARRAY)
-        glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-
         self.vbo.unbind()

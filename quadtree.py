@@ -18,14 +18,18 @@ class LeafNode(object):
         self.mesh = np.array([])
         
         # Generate the heightmap
-        for x in range(self.resolution):
-            for z in range(self.resolution):
+        for x in range(-1, self.resolution+1):
+            for z in range(-1, self.resolution+1):
                 self.heightmap[(x, z)] = opensimplex.noise2(
                     (x + self.position[0]) / 16.0, (z + self.position[1]) / 16.0)
-        for x in range(self.resolution):
-            for z in range(self.resolution):
-                self.mesh = np.append(self.mesh, [x * self.size / self.resolution, self.heightmap[(x, z)], z * self.size / self.resolution])
-                
+        
+        # Create the mesh, scale the heightmap to the size of the chunk
+        for x in range(self.resolution - 1):
+            for z in range(self.resolution - 1):
+                self.mesh = np.append(self.mesh, [
+                    x / self.resolution * self.size[0] + self.position[0], self.heightmap[(x, z)] * self.size[1], z / self.resolution * self.size[1] + self.position[1],
+                ])
+        # Create the mesh object
         self.mesh = Mesh(self.mesh)
         print("Generated mesh with %d vertices" % (len(self.mesh.vertices) / 3))
         
@@ -39,7 +43,7 @@ class QuadTree(object):
         self.level = level
         self.size = size
         self.children = []
-        self.terrain = LeafNode([0, 0], 16, 16)
+        self.terrain = LeafNode([0, 0], [16, 16], 16)
         self.split = False
         
     def draw(self):

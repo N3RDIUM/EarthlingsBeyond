@@ -36,18 +36,10 @@ def main():
         
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
-        # Setup 3D rendering
+        # Render here, e.g. using pyOpenGL
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         _setup_3d()
-        
-        # Clear the screen to black
-        glClear(GL_COLOR_BUFFER_BIT)
-        # Now we can set the color
-        glColor3f(1, 1, 1)
-        
-        # Update the camera
         camera.update(window)
-        
-        # Draw the quadtree
         terrain.draw()
         
         # Swap front and back buffers
