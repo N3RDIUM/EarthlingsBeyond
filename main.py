@@ -2,7 +2,7 @@ import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from quadtree import QuadTree
+from quadtree import CubeTree
 from camera import Camera
 
 def main():
@@ -20,7 +20,7 @@ def main():
     glfw.make_context_current(window)
     
     # Create a quadtree and camera
-    terrain = QuadTree([0, 0], [1, 1], 0)
+    terrain = CubeTree([0, 0, -6000], 10000)
     camera = Camera()
     
     # Lock the mouse to the window
@@ -30,7 +30,7 @@ def main():
         glEnable(GL_DEPTH_TEST)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(60, 640 / 480, 0.1, 1000)
+        gluPerspective(60, 640 / 480, 0.1, 10000000)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         
