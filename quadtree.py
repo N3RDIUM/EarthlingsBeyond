@@ -18,17 +18,33 @@ class LeafNode(object):
         self.mesh = np.array([])
         
         # Generate the heightmap
-        for x in range(-1, self.resolution+1):
-            for z in range(-1, self.resolution+1):
-                self.heightmap[(x, z)] = opensimplex.noise2(
-                    (x + self.position[0]) / 16.0, (z + self.position[1]) / 16.0)
-        
-        # Create the mesh, scale the heightmap to the size of the chunk
+        for x in range(self.resolution):
+            for y in range(self.resolution):
+                x_pos = x / (self.resolution - 1) * self.size[0] + self.position[0]
+                y_pos = y / (self.resolution - 1) * self.size[1] + self.position[1]
+                self.heightmap[(x, y)] = opensimplex.noise2(x_pos, y_pos)
+                
+        # Generate the mesh without the indices
         for x in range(self.resolution - 1):
-            for z in range(self.resolution - 1):
+            for y in range(self.resolution - 1):
                 self.mesh = np.append(self.mesh, [
-                    x / self.resolution * self.size[0] + self.position[0], self.heightmap[(x, z)] * self.size[1], z / self.resolution * self.size[1] + self.position[1],
+                    x / (self.resolution - 1) * self.size[0] + self.position[0],
+                    self.heightmap[(x, y)],
+                    y / (self.resolution - 1) * self.size[1] + self.position[1],
+                    (x + 1) / (self.resolution - 1) * self.size[0] + self.position[0],
+                    self.heightmap[(x + 1, y)],
+                    y / (self.resolution - 1) * self.size[1] + self.position[1],
+                    (x + 1) / (self.resolution - 1) * self.size[0] + self.position[0],
+                    self.heightmap[(x + 1, y + 1)],
+                    (y + 1) / (self.resolution - 1) * self.size[1] + self.position[1],
+                    x / (self.resolution - 1) * self.size[0] + self.position[0],
+                    self.heightmap[(x, y + 1)],
+                    (y + 1) / (self.resolution - 1) * self.size[1] + self.position[1],
+                    x / (self.resolution - 1) * self.size[0] + self.position[0],
+                    self.heightmap[(x, y)],
+                    y / (self.resolution - 1) * self.size[1] + self.position[1],
                 ])
+                
         # Create the mesh object
         self.mesh = Mesh(self.mesh)
         print("Generated mesh with %d vertices" % (len(self.mesh.vertices) / 3))
@@ -43,7 +59,7 @@ class QuadTree(object):
         self.level = level
         self.size = size
         self.children = []
-        self.terrain = LeafNode([0, 0], [16, 16], 16)
+        self.terrain = LeafNode([0, 0], [16, 16], 32)
         self.split = False
         
     def draw(self):

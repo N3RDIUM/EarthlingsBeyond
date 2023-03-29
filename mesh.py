@@ -11,13 +11,16 @@ class Mesh:
         self.indices = indices
         self.normals = normals
         self.uvs = uvs
-
+        
+        # Only implement the vertices
         self.vbo = vbo.VBO(np.array(self.vertices, 'f'))
-
+        
     def draw(self):
         self.vbo.bind()
-        glEnableClientState(GL_VERTEX_ARRAY)
-        glVertexPointer(3, GL_FLOAT, 32, self.vbo)
-        glDrawArrays(GL_LINE_LOOP, 0, len(self.vertices))
-        glDisableClientState(GL_VERTEX_ARRAY)
-        self.vbo.unbind()
+        try:
+            glEnableClientState(GL_VERTEX_ARRAY)
+            glVertexPointer(3, GL_FLOAT, 0, self.vbo)
+            glDrawArrays(GL_LINES, 0, len(self.vertices))
+        finally:
+            self.vbo.unbind()
+            glDisableClientState(GL_VERTEX_ARRAY)
