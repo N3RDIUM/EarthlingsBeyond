@@ -214,11 +214,11 @@ class LeafNode(object):
             self._mesh[index + 2] = vector[2] * self.size / 2
             
             _noise = (
-                simplex(vector[0], vector[1], vector[2]) * 4 + \
-                simplex(vector[0] * 2, vector[1] * 2, vector[2] * 2) * 16 + \
-                simplex(vector[0] / 2, vector[1] / 2, vector[2] / 2) * 2 + \
-                simplex(vector[0] / 4, vector[1] / 4, vector[2] / 4) * 4 + \
-                simplex(vector[0] / 8, vector[1] / 8, vector[2] / 8) * 8
+                simplex(vector[0], vector[1], vector[2]) * 400 + \
+                simplex(vector[0] * 2, vector[1] * 2, vector[2] * 2) * 1600 + \
+                simplex(vector[0] / 2, vector[1] / 2, vector[2] / 2) * 200 + \
+                simplex(vector[0] / 4, vector[1] / 4, vector[2] / 4) * 400 + \
+                simplex(vector[0] / 8, vector[1] / 8, vector[2] / 8) * 800
             ) / 4
             self._mesh[index] += vector[0] * _noise
             self._mesh[index + 1] += vector[1] * _noise
