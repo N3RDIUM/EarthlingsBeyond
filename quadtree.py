@@ -105,9 +105,7 @@ class LeafNode(object):
         self.color = [random.random(), random.random(), random.random()]
         self.parent_position = parent_position
         self.level = level
-        
-        self.gen_thread = threading.Thread(target=self.generate)
-        self.gen_thread.start()
+        self.generate()
 
     def generate(self,):
         self._mesh = np.array([])
@@ -144,15 +142,12 @@ class LeafNode(object):
             self._mesh[index] = self._mesh[index] + self.position[0]
             self._mesh[index + 1] = self._mesh[index + 1] + self.position[1]
             self._mesh[index + 2] = self._mesh[index + 2] + self.position[2]
-        
-        # Make it part of the sphere
+            
         CENTER = [
             self.parent_position[0] + self.size / 2,
             self.parent_position[1] + self.size / 2,
             self.parent_position[2]
         ]
-        # Do it in such a way that the center of the sphere is the center of the cube
-        # And, the smaller "split" cubes are the smaller the sphere is
         for index in range(0, len(self._mesh), 3):
             vector = [
                 self._mesh[index] - CENTER[0],
@@ -165,23 +160,14 @@ class LeafNode(object):
                 vector[1] / length,
                 vector[2] / length
             ]
-            self._mesh[index] = vector[0] * self.size / 2 + CENTER[0]
-            self._mesh[index + 1] = vector[1] * self.size / 2 + CENTER[1]
-            self._mesh[index + 2] = vector[2] * self.size / 2 + CENTER[2]
+            self._mesh[index] = CENTER[0] + vector[0] * self.size / 2
+            self._mesh[index + 1] = CENTER[1] + vector[1] * self.size / 2
+            self._mesh[index + 2] = CENTER[2] + vector[2] * self.size / 2
             
         self.generated = True
-
-    def create_mesh(self):
         self.mesh = Mesh(self._mesh)
 
     def draw(self):
-        try:
-            if self.generated:
-                self.create_mesh()
-            else:
-                return
-        except AttributeError:
-            pass
         if self.mesh is not None:
             glColor3f(self.color[0], self.color[1], self.color[2])
             self.mesh.draw()

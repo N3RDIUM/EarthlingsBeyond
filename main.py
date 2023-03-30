@@ -21,6 +21,7 @@ def main():
     
     # Create a quadtree and camera
     terrain = CubeTree([0, 0, -16])
+    terrain.up.split()
     camera = Camera()
     
     def _setup_3d():
