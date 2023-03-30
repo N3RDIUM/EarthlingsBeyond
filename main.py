@@ -11,7 +11,7 @@ def main():
         return
     
     # Create a windowed mode window and its OpenGL context
-    window = glfw.create_window(640, 480, "Earthlings Beyond", None, None)
+    window = glfw.create_window(1600, 900, "Earthlings Beyond", None, None)
     if not window:
         glfw.terminate()
         return
@@ -27,7 +27,7 @@ def main():
         glEnable(GL_DEPTH_TEST)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(60, 640 / 480, 0.1, 10000000)
+        gluPerspective(60, glfw.get_window_size(window)[0] / glfw.get_window_size(window)[1], 0.1, 1000)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         
