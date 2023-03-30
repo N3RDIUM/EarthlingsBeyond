@@ -8,165 +8,140 @@ import math
 import random
 import threading
 
-class CubeTree(object):
-    """
-    Basically, a cube whose sides are QuadTrees
-    """
-
-    def __init__(self, position, size=32):
-        self.position = position
-        self.size = size
-
-        self.up = QuadTree(
-            [position[0], 
-             position[1] + self.size, 
-             position[2] - self.size / 2], self.size, 1, _type="up", parent_position=position)
-        self.down = QuadTree(
-            [position[0], 
-             position[1], 
-             position[2] - self.size / 2], self.size, 1, _type="down", parent_position=position)
-        self.left = QuadTree(
-            [position[0], 
-             position[1], 
-             position[2] - self.size / 2], self.size, 1, _type="left", parent_position=position)
-        self.right = QuadTree(
-            [position[0] + self.size, 
-             position[1], 
-             position[2] - self.size / 2], self.size, 1, _type="right", parent_position=position)
-        self.front = QuadTree(
-            [position[0], 
-             position[1], 
-             position[2] - self.size / 2], self.size, 1, _type="front", parent_position=position)
-        self.back = QuadTree(
-            [position[0], 
-             position[1], 
-             position[2] + self.size / 2], self.size, 1, _type="back", parent_position=position)
+class QuadTree:
+    def __init__(self, rect=[(0,0,0), (100,0,0), (100,0,100), (0,0,100)], level=1, parent=None):
+        self.rect = rect
+        self.level = level
+        self.parent = parent
+        self.mesh = None
+        self.children = []
+        self.generate()
+        
+    def generate(self):
+        lnode = LeafNode(self.rect, self.level + 1, self, tesselate=8)
+        self.children.append(lnode)
+        
+    def split(self):
+        self.children = []
+        
+        XY = self.rect[0]
+        ZW = self.rect[1]
+        x = XY[0]
+        y = XY[1]
+        z = ZW[0]
+        w = ZW[1]
+        midx = (x + z) / 2
+        midy = (y + w) / 2
+        
+        # Top Left
+        rect = ((x, y), (midx, midy))
+        node = QuadTree(rect, self.level + 1, self)
+        self.children.append(node)
+        
+        # Top Right
+        rect = ((midx, y), (z, midy))
+        node = QuadTree(rect, self.level + 1, self)
+        self.children.append(node)
+        
+        # Bottom Left
+        rect = ((x, midy), (midx, w))
+        node = QuadTree(rect, self.level + 1, self)
+        self.children.append(node)
+        
+        # Bottom Right
+        rect = ((midx, midy), (z, w))
+        node = QuadTree(rect, self.level + 1, self)
+        self.children.append(node)
+        
+    def unite(self):
+        self.children = []
+        self.generate()
         
     def draw(self):
-        self.up.draw()
-        self.down.draw()
-        self.left.draw()
-        self.right.draw()
-        self.front.draw()
-        self.back.draw()
-
-
-class QuadTree(object):
-    def __init__(self, position, size, level, _type="up", parent_position=[]):
-        self.position = position
-        self.type = _type
-        self.level = level
-        self.size = size
-        self.children = []
-        self.parent_position = parent_position
-        self.terrain = LeafNode(position, size, 16, _type=_type, parent_position=parent_position, level=level)
-        self._split = False
-
-    def draw(self):
-        if not self._split:
-            self.terrain.draw()
-            return
         for child in self.children:
-            glColor3f(0.0, 0.0, 0.0)
             child.draw()
-
-    def split(self):
-        if self.type in ["up", "down"]:
-            xy = QuadTree([self.position[0], self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            xY = QuadTree([self.position[0], self.position[1], self.position[2] + self.size / 2], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            XY = QuadTree([self.position[0] + self.size / 2, self.position[1], self.position[2] + self.size / 2], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            Xy = QuadTree([self.position[0] + self.size / 2, self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-        elif self.type in ["left", "right"]:
-            xy = QuadTree([self.position[0], self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            xY = QuadTree([self.position[0], self.position[1] + self.size / 2, self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            XY = QuadTree([self.position[0], self.position[1] + self.size / 2, self.position[2] + self.size / 2], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            Xy = QuadTree([self.position[0], self.position[1], self.position[2] + self.size / 2], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-        elif self.type in ["front", "back"]:
-            xy = QuadTree([self.position[0], self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            xY = QuadTree([self.position[0] + self.size / 2, self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            XY = QuadTree([self.position[0] + self.size / 2, self.position[1] + self.size / 2, self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-            Xy = QuadTree([self.position[0], self.position[1] + self.size / 2, self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
-        self.children.extend([xy, xY, XY, Xy])
-        self._split = True
-
-    def unite(self):
-        del self.children[:]
-        self.children = []
-        self._split = False
-
-
-class LeafNode(object):
-    def __init__(self, position, size, resolution, _type="up", parent_position=[], level=1):
-        self.position = position
-        self.size = size * (level)
-        self.resolution = resolution
-        self.mesh = None
-        self.type = _type
-        self.color = [random.random(), random.random(), random.random()]
-        self.parent_position = parent_position
+            
+class LeafNode():
+    def __init__(self, rect, level, parent, tesselate=32):
+        self.rect = rect
         self.level = level
+        self.parent = parent
+        self._tesselate = tesselate
+        self.mesh = None
+        self.color = [random.random(), random.random(), random.random()]
         self.generate()
-
-    def generate(self,):
-        self._mesh = np.array([])
-
-        # Generate the mesh without the indices (show the triangles)
-        for x in range(self.resolution):
-            for y in range(self.resolution):
-                if self.type in ["up", "down"]:
-                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, 0, y * self.size / self.resolution])
-                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, 0, (y + 1) * self.size / self.resolution])
-                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, 0, y * self.size / self.resolution])
-
-                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, 0, y * self.size / self.resolution])
-                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, 0, (y + 1) * self.size / self.resolution])
-                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, 0, (y + 1) * self.size / self.resolution])
-                elif self.type in ["left", "right"]:
-                    self._mesh = np.append(self._mesh, [0, x * self.size / self.resolution, y * self.size / self.resolution])
-                    self._mesh = np.append(self._mesh, [0, x * self.size / self.resolution, (y + 1) * self.size / self.resolution])
-                    self._mesh = np.append(self._mesh, [0, (x + 1) * self.size / self.resolution, y * self.size / self.resolution])
-
-                    self._mesh = np.append(self._mesh, [0, (x + 1) * self.size / self.resolution, y * self.size / self.resolution])
-                    self._mesh = np.append(self._mesh, [0, x * self.size / self.resolution, (y + 1) * self.size / self.resolution])
-                    self._mesh = np.append(self._mesh, [0, (x + 1) * self.size / self.resolution, (y + 1) * self.size / self.resolution])
-                elif self.type in ["front", "back"]:
-                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, y * self.size / self.resolution, 0])
-                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, (y + 1) * self.size / self.resolution, 0])
-                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, y * self.size / self.resolution, 0])
-
-                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, y * self.size / self.resolution, 0])
-                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, (y + 1) * self.size / self.resolution, 0])
-                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, (y + 1) * self.size / self.resolution, 0])
-                    
-        for index in range(0, len(self._mesh), 3):
-            self._mesh[index] = self._mesh[index] + self.position[0]
-            self._mesh[index + 1] = self._mesh[index + 1] + self.position[1]
-            self._mesh[index + 2] = self._mesh[index + 2] + self.position[2]
-            
-        CENTER = [
-            self.parent_position[0] + self.size / 2,
-            self.parent_position[1] + self.size / 2,
-            self.parent_position[2]
+        
+    def generate(self):
+        corner1 = self.rect[0]
+        corner2 = self.rect[1]
+        corner3 = self.rect[2]
+        corner4 = self.rect[3]
+        
+        # Now, make a simple quad
+        vertices = [
+            corner1, corner2, corner3,
+            corner1, corner3, corner4
         ]
-        for index in range(0, len(self._mesh), 3):
-            vector = [
-                self._mesh[index] - CENTER[0],
-                self._mesh[index + 1] - CENTER[1],
-                self._mesh[index + 2] - CENTER[2]
-            ]
-            length = math.sqrt(vector[0] ** 2 + vector[1] ** 2 + vector[2] ** 2)
-            vector = [
-                vector[0] / length,
-                vector[1] / length,
-                vector[2] / length
-            ]
-            self._mesh[index] = CENTER[0] + vector[0] * self.size / 2
-            self._mesh[index + 1] = CENTER[1] + vector[1] * self.size / 2
-            self._mesh[index + 2] = CENTER[2] + vector[2] * self.size / 2
+        
+        # Tesselate the quad and add noise
+        vertices = self.tesselate(vertices, times=self._tesselate)
+        vertices = self.add_noise(vertices)
+        
+        # Create a mesh
+        self.mesh = Mesh(vertices)
+        
+    def tesselate(self, vertices, times=1):
+        if times == 0:
+            return vertices
+        
+        new_vertices = []
+        
+        for i in range(0, len(vertices), 3):
+            v1 = vertices[i]
+            v2 = vertices[i+1]
+            v3 = vertices[i+2]
             
-        self.generated = True
-        self.mesh = Mesh(self._mesh)
-
+            v12 = self.midpoint(v1, v2)
+            v23 = self.midpoint(v2, v3)
+            v31 = self.midpoint(v3, v1)
+            
+            new_vertices.append(v1)
+            new_vertices.append(v12)
+            new_vertices.append(v31)
+            
+            new_vertices.append(v2)
+            new_vertices.append(v23)
+            new_vertices.append(v12)
+            
+            new_vertices.append(v3)
+            new_vertices.append(v31)
+            new_vertices.append(v23)
+            
+            new_vertices.append(v12)
+            new_vertices.append(v23)
+            new_vertices.append(v31)
+            
+        return self.tesselate(new_vertices, times - 1)
+    
+    def midpoint(self, v1, v2):
+        x = (v1[0] + v2[0]) / 2
+        y = (v1[1] + v2[1]) / 2
+        z = (v1[2] + v2[2]) / 2
+        
+        return (x, y, z)
+    
+    def add_noise(self, vertices):
+        new_vertices = []
+        for vertex in vertices:
+            x = vertex[0]
+            y = vertex[1]
+            z = vertex[2]
+            
+            y += noise.pnoise2(x / 10, z / 10) * 10
+            new_vertices.append((x, y, z))
+            
+        return new_vertices
+        
     def draw(self):
         if self.mesh is not None:
             glColor3f(self.color[0], self.color[1], self.color[2])
