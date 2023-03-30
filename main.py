@@ -20,11 +20,8 @@ def main():
     glfw.make_context_current(window)
     
     # Create a quadtree and camera
-    terrain = CubeTree([0, 0, -6000], 10000)
+    terrain = CubeTree([0, 0, -16])
     camera = Camera()
-    
-    # Lock the mouse to the window
-    glfw.set_input_mode(window, glfw.CURSOR, glfw.CURSOR_DISABLED)
     
     def _setup_3d():
         glEnable(GL_DEPTH_TEST)

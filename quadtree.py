@@ -3,34 +3,10 @@
 import noise
 import numpy as np
 from mesh import Mesh
-from OpenGL.GL import glColor3f, glBegin, glEnd, glVertex3f, GL_QUADS, glPushMatrix, glPopMatrix, glTranslatef
+from OpenGL.GL import glColor3f
+import math
 import random
 import threading
-
-
-def multiDimenDist(point1, point2):
-    deltaVals = [point2[dimension]-point1[dimension]
-                 for dimension in range(len(point1))]
-    runningSquared = 0
-    for coOrd in deltaVals:
-        runningSquared += coOrd**2
-    return runningSquared**(1/2)
-
-
-def findVec(point1, point2, unitSphere=False):
-    finalVector = [0 for coOrd in point1]
-    for dimension, coOrd in enumerate(point1):
-        deltaCoOrd = point2[dimension]-coOrd
-        finalVector[dimension] = deltaCoOrd
-    if unitSphere:
-        totalDist = multiDimenDist(point1, point2)
-        unitVector = []
-        for dimen in finalVector:
-            unitVector.append(dimen/totalDist)
-        return unitVector
-    else:
-        return finalVector
-
 
 class CubeTree(object):
     """
@@ -42,18 +18,30 @@ class CubeTree(object):
         self.size = size
 
         self.up = QuadTree(
-            [position[0], position[1], position[2] + self.size], self.size, 4, _type="up", parent_position=position)
+            [position[0], 
+             position[1] + self.size, 
+             position[2] - self.size / 2], self.size, 1, _type="up", parent_position=position)
         self.down = QuadTree(
-            [position[0], position[1], position[2] - self.size], self.size, 4, _type="down", parent_position=position)
+            [position[0], 
+             position[1], 
+             position[2] - self.size / 2], self.size, 1, _type="down", parent_position=position)
         self.left = QuadTree(
-            [position[0] - self.size, position[1], position[2]], self.size, 4, _type="left", parent_position=position)
+            [position[0], 
+             position[1], 
+             position[2] - self.size / 2], self.size, 1, _type="left", parent_position=position)
         self.right = QuadTree(
-            [position[0] + self.size, position[1], position[2]], self.size, 4, _type="right", parent_position=position)
+            [position[0] + self.size, 
+             position[1], 
+             position[2] - self.size / 2], self.size, 1, _type="right", parent_position=position)
         self.front = QuadTree(
-            [position[0], position[1] - self.size, position[2]], self.size, 4, _type="front", parent_position=position)
+            [position[0], 
+             position[1], 
+             position[2] - self.size / 2], self.size, 1, _type="front", parent_position=position)
         self.back = QuadTree(
-            [position[0], position[1] + self.size, position[2]], self.size, 4, _type="back", parent_position=position)
-
+            [position[0], 
+             position[1], 
+             position[2] + self.size / 2], self.size, 1, _type="back", parent_position=position)
+        
     def draw(self):
         self.up.draw()
         self.down.draw()
@@ -71,7 +59,7 @@ class QuadTree(object):
         self.size = size
         self.children = []
         self.parent_position = parent_position
-        self.terrain = LeafNode(position, size, 64, _type=_type, parent_position=parent_position)
+        self.terrain = LeafNode(position, size, 16, _type=_type, parent_position=parent_position, level=level)
         self._split = False
 
     def draw(self):
@@ -83,15 +71,22 @@ class QuadTree(object):
             child.draw()
 
     def split(self):
-        XY = QuadTree([self.position[0], self.position[1]], [
-                      self.size / 2, self.size / 2], self.level - 1, _type=self.type)
-        Xy = QuadTree([self.position[0], self.position[1] + self.size / 2],
-                      [self.size / 2, self.size / 2], self.level - 1, _type=self.type)
-        xY = QuadTree([self.position[0] + self.size / 2, self.position[1]],
-                      [self.size / 2, self.size / 2], self.level - 1, _type=self.type)
-        xy = QuadTree([self.position[0] + self.size / 2, self.position[1] + self.size / 2],
-                      [self.size / 2, self.size / 2], self.level - 1, _type=self.type)
-        self.children.extend([XY, Xy, xY, xy])
+        if self.type in ["up", "down"]:
+            xy = QuadTree([self.position[0], self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            xY = QuadTree([self.position[0], self.position[1], self.position[2] + self.size / 2], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            XY = QuadTree([self.position[0] + self.size / 2, self.position[1], self.position[2] + self.size / 2], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            Xy = QuadTree([self.position[0] + self.size / 2, self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+        elif self.type in ["left", "right"]:
+            xy = QuadTree([self.position[0], self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            xY = QuadTree([self.position[0], self.position[1] + self.size / 2, self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            XY = QuadTree([self.position[0], self.position[1] + self.size / 2, self.position[2] + self.size / 2], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            Xy = QuadTree([self.position[0], self.position[1], self.position[2] + self.size / 2], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+        elif self.type in ["front", "back"]:
+            xy = QuadTree([self.position[0], self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            xY = QuadTree([self.position[0] + self.size / 2, self.position[1], self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            XY = QuadTree([self.position[0] + self.size / 2, self.position[1] + self.size / 2, self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+            Xy = QuadTree([self.position[0], self.position[1] + self.size / 2, self.position[2]], self.size / 4, self.level + 1, _type=self.type, parent_position=self.position)
+        self.children.extend([xy, xY, XY, Xy])
         self._split = True
 
     def unite(self):
@@ -101,141 +96,83 @@ class QuadTree(object):
 
 
 class LeafNode(object):
-    def __init__(self, position, size, resolution, _type="up", parent_position=[]):
+    def __init__(self, position, size, resolution, _type="up", parent_position=[], level=1):
         self.position = position
-        self.size = size
+        self.size = size * (level)
         self.resolution = resolution
         self.mesh = None
         self.type = _type
         self.color = [random.random(), random.random(), random.random()]
         self.parent_position = parent_position
+        self.level = level
         
         self.gen_thread = threading.Thread(target=self.generate)
         self.gen_thread.start()
 
     def generate(self,):
-        self.heightmap = {}
         self._mesh = np.array([])
 
-        # Generate the heightmap
+        # Generate the mesh without the indices (show the triangles)
         for x in range(self.resolution):
             for y in range(self.resolution):
-                self.heightmap[(x, y)] = 0
+                if self.type in ["up", "down"]:
+                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, 0, y * self.size / self.resolution])
+                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, 0, (y + 1) * self.size / self.resolution])
+                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, 0, y * self.size / self.resolution])
 
-        # Generate the mesh without the indices
-        for x in range(self.resolution - 1):
-            for y in range(self.resolution - 1):
-                self._mesh = np.append(self._mesh, [
-                    x / (self.resolution - 1) * self.size,
-                    self.heightmap[(x, y)],
-                    y / (self.resolution - 1) * self.size,
-                    
-                    (x + 1) / (self.resolution - 1) * self.size,
-                    self.heightmap[(x + 1, y)],
-                    y / (self.resolution - 1) * self.size,
-                    
-                    (x + 1) / (self.resolution - 1) * self.size,
-                    self.heightmap[(x + 1, y + 1)],
-                    (y + 1) / (self.resolution - 1) * self.size,
-                    
-                    x / (self.resolution - 1) * self.size,
-                    self.heightmap[(x, y + 1)],
-                    (y + 1) / (self.resolution - 1) * self.size,
-                    
-                    x / (self.resolution - 1) * self.size,
-                    self.heightmap[(x, y)],
-                    y / (self.resolution - 1) * self.size,
-                ])
+                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, 0, y * self.size / self.resolution])
+                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, 0, (y + 1) * self.size / self.resolution])
+                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, 0, (y + 1) * self.size / self.resolution])
+                elif self.type in ["left", "right"]:
+                    self._mesh = np.append(self._mesh, [0, x * self.size / self.resolution, y * self.size / self.resolution])
+                    self._mesh = np.append(self._mesh, [0, x * self.size / self.resolution, (y + 1) * self.size / self.resolution])
+                    self._mesh = np.append(self._mesh, [0, (x + 1) * self.size / self.resolution, y * self.size / self.resolution])
 
-        # Now, apply the rotation
-        if self.type == "up":
-            for index in range(0, len(self._mesh), 3):
-                x = self._mesh[index]
-                y = self._mesh[index + 1]
-                z = self._mesh[index + 2]
-                self._mesh[index] = z
-                self._mesh[index + 1] = y + self.size / 2
-                self._mesh[index + 2] = x
-        elif self.type == "down":
-            for index in range(0, len(self._mesh), 3):
-                x = self._mesh[index]
-                y = self._mesh[index + 1]
-                z = self._mesh[index + 2]
-                self._mesh[index] = z
-                self._mesh[index + 1] = y - self.size / 2
-                self._mesh[index + 2] = x
-        elif self.type == "left":
-            for index in range(0, len(self._mesh), 3):
-                x = self._mesh[index]
-                y = self._mesh[index + 1]
-                z = self._mesh[index + 2]
-                self._mesh[index] = x
-                self._mesh[index + 1] = z - self.size / 2
-                self._mesh[index + 2] = y
-        elif self.type == "right":
-            for index in range(0, len(self._mesh), 3):
-                x = self._mesh[index]
-                y = self._mesh[index + 1]
-                z = self._mesh[index + 2]
-                self._mesh[index] = x
-                self._mesh[index + 1] = z - self.size / 2
-                self._mesh[index + 2] = y + self.size
-        elif self.type == "front":
-            for index in range(0, len(self._mesh), 3):
-                x = self._mesh[index]
-                y = self._mesh[index + 1]
-                z = self._mesh[index + 2]
-                self._mesh[index] = y
-                self._mesh[index + 1] = x - self.size / 2
-                self._mesh[index + 2] = z
-        elif self.type == "back":
-            for index in range(0, len(self._mesh), 3):
-                x = self._mesh[index]
-                y = self._mesh[index + 1]
-                z = self._mesh[index + 2]
-                self._mesh[index] = y + self.size
-                self._mesh[index + 1] = x - self.size / 2
-                self._mesh[index + 2] = z
+                    self._mesh = np.append(self._mesh, [0, (x + 1) * self.size / self.resolution, y * self.size / self.resolution])
+                    self._mesh = np.append(self._mesh, [0, x * self.size / self.resolution, (y + 1) * self.size / self.resolution])
+                    self._mesh = np.append(self._mesh, [0, (x + 1) * self.size / self.resolution, (y + 1) * self.size / self.resolution])
+                elif self.type in ["front", "back"]:
+                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, y * self.size / self.resolution, 0])
+                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, (y + 1) * self.size / self.resolution, 0])
+                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, y * self.size / self.resolution, 0])
 
-        # Tesselate the mesh towards a sphere
-        CENTER = [
-            self.size / 2, 
-            0, 
-            self.size / 2
-        ]
-        simplex = noise.snoise3
+                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, y * self.size / self.resolution, 0])
+                    self._mesh = np.append(self._mesh, [x * self.size / self.resolution, (y + 1) * self.size / self.resolution, 0])
+                    self._mesh = np.append(self._mesh, [(x + 1) * self.size / self.resolution, (y + 1) * self.size / self.resolution, 0])
+                    
         for index in range(0, len(self._mesh), 3):
-            x = self._mesh[index]
-            y = self._mesh[index + 1]
-            z = self._mesh[index + 2]
-            vector = findVec((x, y, z), CENTER, True)
-            self._mesh[index] = vector[0] * self.size / 2
-            self._mesh[index + 1] = vector[1] * self.size / 2
-            self._mesh[index + 2] = vector[2] * self.size / 2
-            
-            _noise = (
-                simplex(vector[0], vector[1], vector[2]) * 400 + \
-                simplex(vector[0] * 2, vector[1] * 2, vector[2] * 2) * 1600 + \
-                simplex(vector[0] / 2, vector[1] / 2, vector[2] / 2) * 200 + \
-                simplex(vector[0] / 4, vector[1] / 4, vector[2] / 4) * 400 + \
-                simplex(vector[0] / 8, vector[1] / 8, vector[2] / 8) * 800
-            ) / 4
-            self._mesh[index] += vector[0] * _noise
-            self._mesh[index + 1] += vector[1] * _noise
-            self._mesh[index + 2] += vector[2] * _noise 
+            self._mesh[index] = self._mesh[index] + self.position[0]
+            self._mesh[index + 1] = self._mesh[index + 1] + self.position[1]
+            self._mesh[index + 2] = self._mesh[index + 2] + self.position[2]
         
+        # Make it part of the sphere
+        CENTER = [
+            self.parent_position[0] + self.size / 2,
+            self.parent_position[1] + self.size / 2,
+            self.parent_position[2]
+        ]
+        # Do it in such a way that the center of the sphere is the center of the cube
+        # And, the smaller "split" cubes are the smaller the sphere is
         for index in range(0, len(self._mesh), 3):
-            x = self._mesh[index] + self.parent_position[0]
-            y = self._mesh[index + 1] + self.parent_position[1]
-            z = self._mesh[index + 2] + self.parent_position[2]
-            self._mesh[index] = x
-            self._mesh[index + 1] = y
-            self._mesh[index + 2] = z
+            vector = [
+                self._mesh[index] - CENTER[0],
+                self._mesh[index + 1] - CENTER[1],
+                self._mesh[index + 2] - CENTER[2]
+            ]
+            length = math.sqrt(vector[0] ** 2 + vector[1] ** 2 + vector[2] ** 2)
+            vector = [
+                vector[0] / length,
+                vector[1] / length,
+                vector[2] / length
+            ]
+            self._mesh[index] = vector[0] * self.size / 2 + CENTER[0]
+            self._mesh[index + 1] = vector[1] * self.size / 2 + CENTER[1]
+            self._mesh[index + 2] = vector[2] * self.size / 2 + CENTER[2]
             
         self.generated = True
 
     def create_mesh(self):
-        self.mesh = Mesh(self._mesh[:-1])
+        self.mesh = Mesh(self._mesh)
 
     def draw(self):
         try:
