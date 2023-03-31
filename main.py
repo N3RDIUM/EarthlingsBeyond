@@ -2,7 +2,7 @@ import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from quadtree import QuadTree
+from quadtree import CubeTree
 from camera import Camera
 
 def main():
@@ -20,7 +20,15 @@ def main():
     glfw.make_context_current(window)
     
     # Create a quadtree and camera
-    terrain = QuadTree()
+    terrain = CubeTree()
+    terrain.up.split() 
+    terrain.down.split()
+    terrain.left.split()
+    terrain.right.split()
+    terrain.front.split()
+    terrain.back.split()
+    terrain.up.children[0].split()
+    terrain.up.children[0].children[2].split()
     camera = Camera()
     
     def _setup_3d():

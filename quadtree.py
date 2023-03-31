@@ -8,6 +8,32 @@ import math
 import random
 import threading
 
+def midpoint(v1, v2):
+    x = (v1[0] + v2[0]) / 2
+    y = (v1[1] + v2[1]) / 2
+    z = (v1[2] + v2[2]) / 2
+    
+    return (x, y, z)
+
+class CubeTree:
+    def __init__(self, size=32, position=[0,0,0]):
+        self.size = size
+
+        self.up = QuadTree(rect=[(0,size,0), (size,size,0), (size,size,size), (0,size,size)], level=1, parent=self)
+        self.down = QuadTree(rect=[(0,0,0), (size,0,0), (size,0,size), (0,0,size)], level=1, parent=self)
+        self.left = QuadTree(rect=[(0,0,0), (0,size,0), (0,size,size), (0,0,size)], level=1, parent=self)
+        self.right = QuadTree(rect=[(size,0,0), (size,size,0), (size,size,size), (size,0,size)], level=1, parent=self)
+        self.front = QuadTree(rect=[(0,0,0), (size,0,0), (size,size,0), (0,size,0)], level=1, parent=self)
+        self.back = QuadTree(rect=[(0,0,size), (size,0,size), (size,size,size), (0,size,size)], level=1, parent=self)
+        
+    def draw(self):
+        self.up.draw()
+        self.down.draw()
+        self.left.draw()
+        self.right.draw()
+        self.front.draw()
+        self.back.draw()
+
 class QuadTree:
     def __init__(self, rect=[(0,0,0), (100,0,0), (100,0,100), (0,0,100)], level=1, parent=None):
         self.rect = rect
@@ -18,40 +44,42 @@ class QuadTree:
         self.generate()
         
     def generate(self):
-        lnode = LeafNode(self.rect, self.level + 1, self, tesselate=8)
+        lnode = LeafNode(self.rect, self.level + 1, self, tesselate=6)
         self.children.append(lnode)
         
     def split(self):
         self.children = []
         
-        XY = self.rect[0]
-        ZW = self.rect[1]
-        x = XY[0]
-        y = XY[1]
-        z = ZW[0]
-        w = ZW[1]
-        midx = (x + z) / 2
-        midy = (y + w) / 2
+        # Split the quad into 4 quads
+        corner1 = self.rect[0]
+        corner2 = self.rect[1]
+        corner3 = self.rect[2]
+        corner4 = self.rect[3]
         
-        # Top Left
-        rect = ((x, y), (midx, midy))
-        node = QuadTree(rect, self.level + 1, self)
-        self.children.append(node)
+        # Make a midpoint between each corner
+        midpoint1 = midpoint(corner1, corner2)
+        midpoint2 = midpoint(corner2, corner3)
+        midpoint3 = midpoint(corner3, corner4)
+        midpoint4 = midpoint(corner4, corner1)
+        midpoint5 = midpoint(corner1, corner3)
         
-        # Top Right
-        rect = ((midx, y), (z, midy))
-        node = QuadTree(rect, self.level + 1, self)
-        self.children.append(node)
+        # Now, make a simple quad
+        rect1 = [corner1, midpoint1, midpoint5, midpoint4]
+        rect2 = [midpoint1, corner2, midpoint2, midpoint5]
+        rect3 = [midpoint5, midpoint2, corner3, midpoint3]
+        rect4 = [midpoint4, midpoint5, midpoint3, corner4]
         
-        # Bottom Left
-        rect = ((x, midy), (midx, w))
-        node = QuadTree(rect, self.level + 1, self)
-        self.children.append(node)
+        # Create a node for each quad
+        node1 = QuadTree(rect1, self.level + 1, self.parent)
+        node2 = QuadTree(rect2, self.level + 1, self.parent)
+        node3 = QuadTree(rect3, self.level + 1, self.parent)
+        node4 = QuadTree(rect4, self.level + 1, self.parent)
         
-        # Bottom Right
-        rect = ((midx, midy), (z, w))
-        node = QuadTree(rect, self.level + 1, self)
-        self.children.append(node)
+        # Add the nodes to the children list
+        self.children.append(node1)
+        self.children.append(node2)
+        self.children.append(node3)
+        self.children.append(node4)
         
     def unite(self):
         self.children = []
@@ -83,9 +111,9 @@ class LeafNode():
             corner1, corner3, corner4
         ]
         
-        # Tesselate the quad and add noise
+        # Tesselate the quad, make it a sphere, and add noise
         vertices = self.tesselate(vertices, times=self._tesselate)
-        vertices = self.add_noise(vertices)
+        vertices = self.sphere(vertices)
         
         # Create a mesh
         self.mesh = Mesh(vertices)
@@ -101,9 +129,9 @@ class LeafNode():
             v2 = vertices[i+1]
             v3 = vertices[i+2]
             
-            v12 = self.midpoint(v1, v2)
-            v23 = self.midpoint(v2, v3)
-            v31 = self.midpoint(v3, v1)
+            v12 = midpoint(v1, v2)
+            v23 = midpoint(v2, v3)
+            v31 = midpoint(v3, v1)
             
             new_vertices.append(v1)
             new_vertices.append(v12)
@@ -122,25 +150,23 @@ class LeafNode():
             new_vertices.append(v31)
             
         return self.tesselate(new_vertices, times - 1)
-    
-    def midpoint(self, v1, v2):
-        x = (v1[0] + v2[0]) / 2
-        y = (v1[1] + v2[1]) / 2
-        z = (v1[2] + v2[2]) / 2
-        
-        return (x, y, z)
-    
-    def add_noise(self, vertices):
-        new_vertices = []
-        for vertex in vertices:
-            x = vertex[0]
-            y = vertex[1]
-            z = vertex[2]
+
+    def sphere(self, vertices):
+        CENTER = [self.parent.parent.size / 2]*3
+        for i in range(len(vertices)):
+            v = vertices[i]
+            x = v[0] - CENTER[0]
+            y = v[1] - CENTER[1]
+            z = v[2] - CENTER[2]
             
-            y += noise.pnoise2(x / 10, z / 10) * 10
-            new_vertices.append((x, y, z))
+            length = math.sqrt(x**2 + y**2 + z**2)
             
-        return new_vertices
+            x = x / length * self.parent.parent.size
+            y = y / length * self.parent.parent.size
+            z = z / length * self.parent.parent.size
+            
+            vertices[i] = (x, y, z)
+        return vertices
         
     def draw(self):
         if self.mesh is not None:
