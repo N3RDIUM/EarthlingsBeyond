@@ -20,22 +20,14 @@ def main():
     glfw.make_context_current(window)
     
     # Create a quadtree and camera
-    terrain = CubeTree()
-    terrain.up.split() 
-    terrain.down.split()
-    terrain.left.split()
-    terrain.right.split()
-    terrain.front.split()
-    terrain.back.split()
-    terrain.up.children[0].split()
-    terrain.up.children[0].children[2].split()
-    camera = Camera()
+    camera = Camera(position=[0, 0, -3200])
+    terrain = CubeTree(camera=camera,)
     
     def _setup_3d():
         glEnable(GL_DEPTH_TEST)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(60, glfw.get_window_size(window)[0] / glfw.get_window_size(window)[1], 0.1, 1000)
+        gluPerspective(60, glfw.get_window_size(window)[0] / glfw.get_window_size(window)[1], 0.1, 1000000)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         
@@ -47,6 +39,8 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         _setup_3d()
         camera.update(window)
+        
+        # Draw the terrain
         terrain.draw()
         
         # Swap front and back buffers
