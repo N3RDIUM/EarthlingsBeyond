@@ -90,7 +90,7 @@ class QuadTree:
             child.draw()
             
 class LeafNode():
-    def __init__(self, rect, level, parent, tesselate=32):
+    def __init__(self, rect, level, parent, tesselate=8):
         self.rect = rect
         self.level = level
         self.parent = parent
@@ -107,13 +107,15 @@ class LeafNode():
         
         # Now, make a simple quad
         vertices = [
-            corner1, corner2, corner3,
-            corner1, corner3, corner4
+            corner1, corner2, corner3, corner4
         ]
         
         # Tesselate the quad, make it a sphere, and add noise
         vertices = self.tesselate(vertices, times=self._tesselate)
         vertices = self.sphere(vertices)
+        
+        # Convert the points to a triangle mesh
+        vertices = self.convert_to_mesh(vertices)
         
         # Create a mesh
         self.mesh = Mesh(vertices)
@@ -124,30 +126,39 @@ class LeafNode():
         
         new_vertices = []
         
-        for i in range(0, len(vertices), 3):
-            v1 = vertices[i]
-            v2 = vertices[i+1]
-            v3 = vertices[i+2]
+        for i in range(0, len(vertices), 4):
+            corner1 = vertices[i]
+            corner2 = vertices[i + 1]
+            corner3 = vertices[i + 2]
+            corner4 = vertices[i + 3]
             
-            v12 = midpoint(v1, v2)
-            v23 = midpoint(v2, v3)
-            v31 = midpoint(v3, v1)
+            # Make a midpoint between each corner
+            midpoint1 = midpoint(corner1, corner2)
+            midpoint2 = midpoint(corner2, corner3)
+            midpoint3 = midpoint(corner3, corner4)
+            midpoint4 = midpoint(corner4, corner1)
+            midpoint5 = midpoint(corner1, corner3)
             
-            new_vertices.append(v1)
-            new_vertices.append(v12)
-            new_vertices.append(v31)
+            # Now, make a simple quad
+            new_vertices.append(corner1)
+            new_vertices.append(midpoint1)
+            new_vertices.append(midpoint5)
+            new_vertices.append(midpoint4)
             
-            new_vertices.append(v2)
-            new_vertices.append(v23)
-            new_vertices.append(v12)
+            new_vertices.append(midpoint1)
+            new_vertices.append(corner2)
+            new_vertices.append(midpoint2)
+            new_vertices.append(midpoint5)
             
-            new_vertices.append(v3)
-            new_vertices.append(v31)
-            new_vertices.append(v23)
+            new_vertices.append(midpoint5)
+            new_vertices.append(midpoint2)
+            new_vertices.append(corner3)
+            new_vertices.append(midpoint3)
             
-            new_vertices.append(v12)
-            new_vertices.append(v23)
-            new_vertices.append(v31)
+            new_vertices.append(midpoint4)
+            new_vertices.append(midpoint5)
+            new_vertices.append(midpoint3)
+            new_vertices.append(corner4)
             
         return self.tesselate(new_vertices, times - 1)
 
@@ -167,6 +178,24 @@ class LeafNode():
             
             vertices[i] = (x, y, z)
         return vertices
+    
+    def convert_to_mesh(self, vertices):
+        # Convert the points to a triangle mesh
+        new_vertices = []
+        for i in range(0, len(vertices), 4):
+            corner1 = vertices[i + 2]
+            corner2 = vertices[i + 3]
+            corner3 = vertices[i + 1]
+            corner4 = vertices[i + 0]
+            
+            new_vertices.append(corner1)
+            new_vertices.append(corner3)
+            new_vertices.append(corner4)
+            
+            new_vertices.append(corner1)
+            new_vertices.append(corner3)
+            new_vertices.append(corner4)
+        return new_vertices
         
     def draw(self):
         if self.mesh is not None:
