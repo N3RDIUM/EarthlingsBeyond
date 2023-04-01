@@ -134,7 +134,7 @@ class QuadTree:
                 child.update(camera_position)
             
 class LeafNode():
-    def __init__(self, rect, level, parent, tesselate=8):
+    def __init__(self, rect, level, parent, tesselate=6):
         self.rect = rect
         self.level = level
         self.parent = parent
@@ -231,16 +231,17 @@ class LeafNode():
         new_vertices = []
         for i in tqdm.trange(0, len(vertices), 4, desc="Converting to mesh"):
             corner1 = vertices[i + 2]
-            # corner2 = vertices[i + 3]
+            corner2 = vertices[i + 3]
             corner3 = vertices[i + 1]
             corner4 = vertices[i + 0]
             
+            # This is for GL_TRIANGLES
             new_vertices.append(corner1)
+            new_vertices.append(corner2)
             new_vertices.append(corner3)
-            new_vertices.append(corner4)
             
-            new_vertices.append(corner1)
             new_vertices.append(corner3)
+            new_vertices.append(corner2)
             new_vertices.append(corner4)
         return new_vertices
         

@@ -20,7 +20,7 @@ def main():
     glfw.make_context_current(window)
     
     # Create a quadtree and camera
-    camera = Camera(position=[0, 0, -3200])
+    camera = Camera(position=[0, 0, -1800])
     terrain = CubeTree(camera=camera,)
     
     def _setup_3d():
@@ -32,6 +32,16 @@ def main():
         glLoadIdentity()
         
     frame = 0
+    glEnable(GL_CULL_FACE)
+    glCullFace(GL_BACK)
+    glEnable(GL_FOG) # For a false sense of depth
+    glFogi(GL_FOG_MODE, GL_EXP2)
+    glFogfv(GL_FOG_COLOR, [0.0, 0.0, 0.0, 1.0])
+    glFogf(GL_FOG_DENSITY, 0.001)
+    glHint(GL_FOG_HINT, GL_NICEST)
+    glFogf(GL_FOG_START, 10.0)
+    glFogf(GL_FOG_END, 5000.0)
+    glFogi(GL_FOG_COORD_SRC, GL_FRAGMENT_DEPTH)
         
     # Loop until the user closes the window
     while not glfw.window_should_close(window):

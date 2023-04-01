@@ -20,7 +20,7 @@ class Mesh:
         try:
             glEnableClientState(GL_VERTEX_ARRAY)
             glVertexPointer(3, GL_FLOAT, 0, self.vbo)
-            glDrawArrays(GL_LINES, 0, len(self.vertices))
+            glDrawArrays(GL_TRIANGLES, 0, len(self.vertices))
         finally:
             self.vbo.unbind()
             glDisableClientState(GL_VERTEX_ARRAY)
