@@ -24,3 +24,6 @@ class Mesh:
         finally:
             self.vbo.unbind()
             glDisableClientState(GL_VERTEX_ARRAY)
+            
+    def __del__(self):
+        self.vbo.delete()

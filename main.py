@@ -20,7 +20,7 @@ def main():
     glfw.make_context_current(window)
     
     # Create a quadtree and camera
-    camera = Camera(position=[0, 0, -1800])
+    camera = Camera(position=[0, 0, -180])
     terrain = CubeTree(camera=camera,)
     
     def _setup_3d():
@@ -32,12 +32,10 @@ def main():
         glLoadIdentity()
         
     frame = 0
-    glEnable(GL_CULL_FACE)
-    glCullFace(GL_BACK)
     glEnable(GL_FOG) # For a false sense of depth
-    glFogi(GL_FOG_MODE, GL_EXP2)
+    glFogi(GL_FOG_MODE, GL_LINEAR)
     glFogfv(GL_FOG_COLOR, [0.0, 0.0, 0.0, 1.0])
-    glFogf(GL_FOG_DENSITY, 0.001)
+    glFogf(GL_FOG_DENSITY, 0.01)
     glHint(GL_FOG_HINT, GL_NICEST)
     glFogf(GL_FOG_START, 10.0)
     glFogf(GL_FOG_END, 5000.0)
@@ -49,6 +47,7 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         _setup_3d()
         camera.update(window)
+        terrain.update()
         
         # Draw the terrain
         terrain.draw()
