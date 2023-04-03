@@ -1,9 +1,12 @@
 import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from OpenGL.GLUT import *
 
 from quadtree import CubeTree
 from camera import Camera
+
+glutInit()
 
 def main():
     # Initialize GLFW
@@ -35,22 +38,35 @@ def main():
     glEnable(GL_FOG) # For a false sense of depth
     glFogi(GL_FOG_MODE, GL_LINEAR)
     glFogfv(GL_FOG_COLOR, [0.0, 0.0, 0.0, 1.0])
-    glFogf(GL_FOG_DENSITY, 0.01)
+    glFogf(GL_FOG_DENSITY, 0.1)
     glHint(GL_FOG_HINT, GL_NICEST)
     glFogf(GL_FOG_START, 10.0)
-    glFogf(GL_FOG_END, 5000.0)
+    glFogf(GL_FOG_END, 3200.0)
     glFogi(GL_FOG_COORD_SRC, GL_FRAGMENT_DEPTH)
+    
+    _setup_3d()
+    glLightfv(GL_LIGHT0, GL_POSITION, (GLfloat * 4)(0.0, 0.0, 0.0, 1))
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, (GLfloat * 3)(.05, .05, .05))
+    glLightfv(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, (GLfloat * 1) (0.000009))
+    glEnable(GL_LIGHT0)
+    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE)
         
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
         # Render here, e.g. using pyOpenGL
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         _setup_3d()
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
+        glEnable(GL_COLOR_MATERIAL)
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE )
         camera.update(window)
-        terrain.update()
-        
-        # Draw the terrain
         terrain.draw()
+        glDisable(GL_LIGHTING)
+        glDisable(GL_LIGHT0)
+        glDisable(GL_COLOR_MATERIAL)
+        
+        terrain.update()
         
         # Swap front and back buffers
         glfw.swap_buffers(window)

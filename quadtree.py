@@ -1,8 +1,10 @@
 # Implementation of a QuadTree in Python
 # This is for Terrain LoD
 import noise
+import numpy
 from mesh import Mesh
 from OpenGL.GL import *
+from OpenGL.GLUT import *
 import math
 import random
 import threading
@@ -14,20 +16,28 @@ def midpoint(v1, v2):
     
     return (x, y, z)
 
+glutInit()
+def drawSphere(x, y, z, radius=1):
+    glPushMatrix()
+    glTranslatef(x, y, z)
+    glutSolidSphere(radius, 10, 10)
+    glPopMatrix()
+
 class CubeTree:
-    def __init__(self, size=320, position=[0,0,-160], rotation=[-13.5,0,0], rotation_vel=[0,0.001,0], camera=None):
+    def __init__(self, size=320, position=[0,0,-160], rotation=[-13.5,0,0], rotation_vel=[0.02,0.01,0.04], camera=None):
         self.size = size
         self.position = position
         self.rotation = rotation
         self.rotation_vel = rotation_vel
         self.camera = camera
         self.drawing = False
+        
+        self.up = QuadTree(rect=[(0,size,0), (0,size,size), (size,size,size), (size,size,0)], level=1, parent=self)
+        self.left = QuadTree(rect=[(0,0,0), (0,0,size), (0,size,size), (0,size,0)], level=1, parent=self)
+        self.front = QuadTree(rect=[(0,0,0), (0,size,0), (size,size,0), (size,0,0)], level=1, parent=self)
 
-        self.up = QuadTree(rect=[(0,size,0), (size,size,0), (size,size,size), (0,size,size)], level=1, parent=self)
         self.down = QuadTree(rect=[(0,0,0), (size,0,0), (size,0,size), (0,0,size)], level=1, parent=self)
-        self.left = QuadTree(rect=[(0,0,0), (0,size,0), (0,size,size), (0,0,size)], level=1, parent=self)
         self.right = QuadTree(rect=[(size,0,0), (size,size,0), (size,size,size), (size,0,size)], level=1, parent=self)
-        self.front = QuadTree(rect=[(0,0,0), (size,0,0), (size,size,0), (0,size,0)], level=1, parent=self)
         self.back = QuadTree(rect=[(0,0,size), (size,0,size), (size,size,size), (0,size,size)], level=1, parent=self)
         
     def draw(self):
@@ -37,13 +47,20 @@ class CubeTree:
         glRotatef(self.rotation[0], 1, 0, 0)
         glRotatef(self.rotation[1], 0, 1, 0)
         glRotatef(self.rotation[2], 0, 0, 1)
+        
         self.up.draw()
-        self.down.draw()
         self.left.draw()
-        self.right.draw()
         self.front.draw()
+        
+        self.right.draw()
+        self.down.draw()
         self.back.draw()
+        
+        glColor4f(0.5, 0.69, 1.0, 1.0)
+        glutSolidSphere(self.size, 128, 128)
+        
         glPopMatrix()
+        
         self.drawing = False
         
         self.rotation[0] += self.rotation_vel[0]
@@ -52,12 +69,13 @@ class CubeTree:
         
     def update(self):
         if self.camera is not None:
-            self.up.update(self.camera.position)
-            self.down.update(self.camera.position)
-            self.left.update(self.camera.position)
-            self.right.update(self.camera.position)
-            self.front.update(self.camera.position)
-            self.back.update(self.camera.position)
+            # self.up.update(self.camera.position)
+            # self.down.update(self.camera.position)
+            # self.left.update(self.camera.position)
+            # self.right.update(self.camera.position)
+            # self.front.update(self.camera.position)
+            # self.back.update(self.camera.position)
+            pass
 
 class QuadTree:
     def __init__(self, rect=[(0,0,0), (100,0,0), (100,0,100), (0,0,100)], level=1, parent=None):
@@ -76,9 +94,6 @@ class QuadTree:
         self.children.append(lnode)
         
     def split(self):
-        del self.children[:]
-        self.children = []
-        
         # Split the quad into 4 quads
         corner1 = self.rect[0]
         corner2 = self.rect[1]
@@ -110,6 +125,9 @@ class QuadTree:
         self.children.append(node3)
         self.children.append(node4)
         
+        del self.children[0]
+        self.children.remove(self.children[0])
+        
     def unite(self):
         self.children = []
         self.generate()
@@ -119,56 +137,49 @@ class QuadTree:
             child.draw()
         
     def update(self, camera_position):
-        # Get the distance between the camera and the center of the quad
-        center = self.position
-        if len(center) == 0:
+        if len(self.position) == 0:
             return
         
-        # Apply the parent's rotation
-        if self.parent is not None:
-            center = self.rotate_point(center, self.parent.rotation)
+        # Rotate the camera position
+        camera_position = self.rotate_point(camera_position, self.parent.rotation)
         
-        # Calculate the distance
-        distance = math.sqrt((center[0] - camera_position[0]) ** 2 + (center[1] - camera_position[1]) ** 2 + (center[2] - camera_position[2]) ** 2)
+        # Calculate the distance between the camera and the center of the quad
+        distance = math.sqrt((self.position[0] - camera_position[0]) ** 2 + (self.position[1] - camera_position[1]) ** 2 + (self.position[2] - camera_position[2]) ** 2)
         
-        # If the distance is less than the size of the quad, split the quad
-        # Else, unite the quad
+        # If the camera is close enough to the quad, split it
         if distance < self.size:
-            if len(self.children) == 1 and self.level < 6:
+            if len(self.children) == 1:
                 self.split()
-        else:
-            if len(self.children) > 1:
-                self.unite()
-            
-        # Update the children
-        for child in self.children:
-            if type(child) is QuadTree:
+                
+            for child in self.children:
                 child.update(camera_position)
-
+        else:
+            if len(self.children) == 4:
+                self.unite()
+        
     @staticmethod
     def rotate_point(point, rotation):
         x = point[0]
         y = point[1]
         z = point[2]
-
-        # Rotate around the x-axis
-        y = y * math.cos(math.radians(rotation[0])) - z * math.sin(math.radians(rotation[0]))
-        z = y * math.sin(math.radians(rotation[0])) + z * math.cos(math.radians(rotation[0]))
-        z = -z  # Negate the z-coordinate after the first rotation
-
-        # Rotate around the y-axis
-        x = x * math.cos(math.radians(rotation[1])) + z * math.sin(math.radians(rotation[1]))
-        z = -x * math.sin(math.radians(rotation[1])) + z * math.cos(math.radians(rotation[1]))
-
-        # Rotate around the z-axis
-        x = x * math.cos(math.radians(rotation[2])) - y * math.sin(math.radians(rotation[2]))
-        y = x * math.sin(math.radians(rotation[2])) + y * math.cos(math.radians(rotation[2]))
-
-        return -x, y, z
+        
+        x1 = x * math.cos(rotation[0]) - y * math.sin(rotation[0])
+        y1 = x * math.sin(rotation[0]) + y * math.cos(rotation[0])
+        z1 = z
+        
+        x2 = x1 * math.cos(rotation[1]) - z1 * math.sin(rotation[1])
+        y2 = y1
+        z2 = x1 * math.sin(rotation[1]) + z1 * math.cos(rotation[1])
+        
+        x3 = x2
+        y3 = y2 * math.cos(rotation[2]) - z2 * math.sin(rotation[2])
+        z3 = y2 * math.sin(rotation[2]) + z2 * math.cos(rotation[2])
+        
+        return (x3, y3, z3)
 
             
 class LeafNode():
-    def __init__(self, rect, level, parent, tesselate=6):
+    def __init__(self, rect, level, parent, tesselate=4):
         self.rect = rect
         self.level = level
         self.parent = parent
@@ -197,14 +208,21 @@ class LeafNode():
         # Convert the points to a triangle mesh
         vertices = self.convert_to_mesh(vertices)
         
+        # Indices 
+        indices = self.get_indices(vertices)
+        
         # Get the normals
-        normals = self.get_normals(vertices)
+        normals = self.get_normals(
+            numpy.array(vertices)
+        )
         
         # Get average position
         self.parent.position = self.get_average_position(vertices)
         
         # Create a mesh
         self.mesh = vertices
+        self.normals = normals
+        self.indices = indices
         
     def tesselate(self, vertices, times=1):
         if times == 0:
@@ -256,15 +274,46 @@ class LeafNode():
             y = v[1] - CENTER[1]
             z = v[2] - CENTER[2]
             
-            _noise = noise.snoise3(x / 640, y / 640, z / 640) * 12
-            length = math.sqrt(x**2 + y**2 + z**2) + _noise
+            length = math.sqrt(x**2 + y**2 + z**2)
             
             x = x / length * self.parent.parent.size
             y = y / length * self.parent.parent.size
             z = z / length * self.parent.parent.size
             
+            # Add noise
+            _noise = self.avg([
+                # Local noise
+                noise.snoise3(x, y, z) * 0.25,
+                noise.snoise3(x / 2, y / 2, z / 2) * 0.5,
+                noise.snoise3(x / 4, y / 4, z / 4) * 2,
+                noise.snoise3(x / 8, y / 8, z / 8) * 4,
+                noise.snoise3(x / 16, y / 16, z / 16) * 8,
+                noise.snoise3(x / 32, y / 32, z / 32) * 16,
+                
+                # Getting larger
+                noise.snoise3(x / 320, y / 320, z / 320) * 32,
+                noise.snoise3(x / 640, y / 640, z / 640) * 64,
+                
+                # Noise that produces continents
+                noise.snoise3(x / 128, y / 128, z / 128) * 128,
+            ])
+            vector = [x, y, z]
+            vector = self.normalize(vector)
+            x = x + vector[0] * _noise
+            y = y + vector[1] * _noise
+            z = z + vector[2] * _noise
+            
             vertices[i] = (x, y, z)
         return vertices
+
+    @staticmethod
+    def normalize(vector):
+        length = math.sqrt(vector[0]**2 + vector[1]**2 + vector[2]**2)
+        return vector[0] / length, vector[1] / length, vector[2] / length
+
+    @staticmethod
+    def avg(array):
+        return sum(array) / len(array)
     
     def convert_to_mesh(self, vertices):
         # Convert the points to a triangle mesh
@@ -285,31 +334,26 @@ class LeafNode():
             new_vertices.append(corner4)
         return new_vertices
     
-    def get_normals(self, vertices):
-        normals = []
-        for i in range(0, len(vertices), 3):
-            corner1 = vertices[i + 0]
-            corner2 = vertices[i + 1]
-            corner3 = vertices[i + 2]
-            
-            # Make a midpoint between each corner
-            midpoint1 = midpoint(corner1, corner2)
-            midpoint2 = midpoint(corner2, corner3)
-            
-            # Now, make a simple quad
-            normal = self.cross_product(midpoint1, midpoint2)
-            
-            normals.append(normal)
-            normals.append(normal)
-            normals.append(normal)
-        return normals
-    
+    def get_indices(self, vertices):
+        indices = []
+        for i in range(len(vertices)):
+            indices.append(i)
+        return indices
+
     @staticmethod
-    def cross_product(a, b):
-        x = a[1] * b[2] - a[2] * b[1]
-        y = a[2] * b[0] - a[0] * b[2]
-        z = a[0] * b[1] - a[1] * b[0]
-        return (x, y, z)
+    def get_normals(vtx):
+        normals = []
+        for i in range(0, len(vtx), 3):
+            p1 = vtx[i]
+            p2 = vtx[i + 1]
+            p3 = vtx[i + 2]
+            u = p2 - p1
+            v = p3 - p1
+            n = numpy.cross(u, v)
+            normals.append(n)
+            normals.append(n)
+            normals.append(n)
+        return normals
     
     def get_average_position(self, vertices):
         x = 0
@@ -331,7 +375,7 @@ class LeafNode():
                 # Draw double-sided
                 self.mesh.draw()
             except:
-                self.mesh = Mesh(vertices=self.mesh)
+                self.mesh = Mesh(vertices=self.mesh, normals=self.normals, indices=self.indices)
                 
     def __del__(self):
         del self.mesh
